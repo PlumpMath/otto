@@ -2,12 +2,19 @@
   (:require [clojure.test :refer :all]
             [semperos.otto.coerce :refer :all]
             [clojure.test.check.generators :as gen]
+            [clojure.test.check.clojure-test :refer [defspec]]
+            [clojure.test.check.properties :as prop]
             [com.gfredericks.test.chuck.clojure-test :refer [checking]]
             [schema.core :as s]
-            [semperos.otto.util :refer [full-name]]))
+            [semperos.otto.util :refer [full-name]])
+  (:import clojure.lang.ExceptionInfo))
+
+(alter-var-root #'*warn-on-coercion* (constantly (constantly false)))
+
+(def iterations 20)
 
 (deftest test-key-map-out->in
-  (checking "The relationship of :in and :out for key-map-out->in" 20
+  (checking "The relationship of :in and :out for key-map-out->in" iterations
             [in-key gen/keyword
              out-key gen/string
              in-value gen/any
@@ -22,7 +29,7 @@
                   "if the key is a keyword, should return a stringified version of the keyword if no :out is specified."))))
 
 (deftest test-key-map-in->out
-  (checking "The relationship of :in and :out for key-map-in->out" 20
+  (checking "The relationship of :in and :out for key-map-in->out" iterations
             [in-key gen/keyword
              out-key gen/string
              in-value gen/any
@@ -36,7 +43,7 @@
                   "should return the original map if no :key spec is provided."))))
 
 (deftest test-key-map-in->json
-  (checking "The relationship of :in and :json for key-map-in->json" 20
+  (checking "The relationship of :in and :json for key-map-in->json" iterations
             [in-key gen/keyword
              json-key gen/string
              in-value gen/any
@@ -56,7 +63,7 @@
 
 (deftest test-key-map
   (testing "When translating into the domain model"
-    (checking "the [:out :in] direction" 20
+    (checking "the [:out :in] direction" iterations
               [in-key1 gen/keyword
                in-key2 gen/keyword
                in-value1 (gen/elements [s/Uuid s/Str])
@@ -76,7 +83,7 @@
                 (is (= {(full-name in-key1) in-key1 out-key2 in-key2}
                        result-dm2)
                     "should return a map with all explicit :out to :in mappings as well as stringified defaults for those not specified.")))
-    (checking "the [:in :out] direction" 20
+    (checking "the [:in :out] direction" iterations
               [in-key1 gen/keyword
                in-key2 gen/keyword
                in-value1 (gen/elements [s/Int s/Bool])
@@ -96,7 +103,7 @@
                 (is (= {in-key2 out-key2}
                        result-dm2)
                     "should exclude entries without explicit :out")))
-    (checking "the [:in :json] direction" 20
+    (checking "the [:in :json] direction" iterations
               [in-key1 gen/keyword
                in-key2 gen/keyword
                in-value1 (gen/elements [s/Int s/Bool])
@@ -122,3 +129,52 @@
                 (is (= {in-key1 (full-name in-key1) in-key2 out-key2}
                        result-dm3)
                     "should fall back to stringified entries if neither :json nor :out is specified.")))))
+
+(deftest test-coerce
+  (testing "Generic coercion from one value to another"
+    (let [uuid (java.util.UUID/randomUUID)
+          obj (Object.)]
+     (are [from-to x y] (= y (coerce from-to x))
+       [::a ::b]         obj obj
+       [s/Uuid s/Str]    uuid (str uuid)
+       [s/Str  s/Uuid]   (str uuid) uuid
+       [s/Keyword s/Str] :foo "foo"
+       [s/Keyword s/Str] :foo/bar "foo/bar"
+       [s/Str s/Keyword] "alpha" :alpha
+       [s/Str s/Keyword] "alpha/beta" :alpha/beta
+       [s/Symbol s/Str]  'foo "foo"
+       [s/Symbol s/Str]  'foo/bar "foo/bar"
+       [s/Str s/Symbol]  "alpha" 'alpha
+       [s/Str s/Symbol]  "alpha/beta" 'alpha/beta
+       [s/Int s/Str]     (Integer. 42) "42"
+       [s/Str s/Int]     "42" (Integer. 42)
+       [Long s/Str]      (Long. 42) "42"
+       [s/Str Long]      "42" (Long. 42)
+       [s/Num s/Str]     42 "42"))))
+
+(deftest test-cant-coerce-to-generic-number
+  (is (thrown? ExceptionInfo (coerce [s/Str s/Num] "42"))))
+
+(defspec spec-coerce-identity iterations
+  (prop/for-all [x gen/any]
+                (= x (coerce [::b ::a] (coerce [::a ::b] x)))))
+
+(defspec spec-coerce-uuid<->str iterations
+  (prop/for-all [uuid (gen/fmap (fn [bytes] (java.util.UUID/nameUUIDFromBytes bytes)) gen/bytes)]
+                (= uuid (coerce [s/Str s/Uuid] (coerce [s/Uuid s/Str] uuid)))))
+
+(defspec spec-coerce-keyword<->str iterations
+  (prop/for-all [keyword gen/keyword]
+                (= keyword (coerce [s/Str s/Keyword] (coerce [s/Keyword s/Str] keyword)))))
+
+(defspec spec-coerce-symbol<->str iterations
+  (prop/for-all [symbol gen/symbol]
+                (= symbol (coerce [s/Str s/Symbol] (coerce [s/Symbol s/Str] symbol)))))
+
+(defspec spec-coerce-integer<->str iterations
+  (prop/for-all [int gen/int]
+                (= int (coerce [s/Str s/Int] (coerce [s/Int s/Str] int)))))
+
+(defspec spec-coerce-long<->str iterations
+  (prop/for-all [int gen/int]
+                (= int (coerce [s/Str Long] (coerce [Long s/Str] int)))))

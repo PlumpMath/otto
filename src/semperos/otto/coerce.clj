@@ -6,7 +6,7 @@
             [semperos.otto.util :refer [full-name refashion-keys]])
   (:import java.util.UUID))
 
-(def ^:dynamic *warn-on-coerce*
+(def ^:dynamic *warn-on-coercion*
   "Tell Otto to warn when a default coercion is used. Is a function that takes a 2-item vector of the [from to] values used by the main `coerce` multimethod. If the function returns _truthy_, a warning will be produced. Default is `coll?`"
   coll?)
 
@@ -63,9 +63,9 @@
   (fn [[from to] _] [from to]))
 
 (defmethod coerce :default [from-to x]
-  (when (*warn-on-coerce* x)
+  (when (*warn-on-coercion* x)
     (binding [*out* *err*]
-      (println "WARNING: Using default coercion on a collection, which usually means you've forgotten to set up an appropriate coercion. The [from to] value is: " (pr-str from-to))))
+      (println "WARNING: Using default coercion on a collection, which usually means you've forgotten to set up an appropriate coercion. The [from to] value is: " (pr-str from-to) " and type of input is " (type x))))
   x)
 
 (defmethod coerce [s/Uuid s/Str]
