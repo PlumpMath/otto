@@ -1,6 +1,6 @@
 # Otto: Models and Serialization
 
-<img src="/doc/otto.jpg" alt="Otto" style="width=300px;">
+<img src="/doc/otto.jpg" alt="Otto" title="Otto" />
 
 Construct models for your domain as Clojure maps, with a declarative data syntax for specifying serialization and deserialization to Clojure maps compatible with other representations.
 
