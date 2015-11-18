@@ -56,6 +56,7 @@ One may extract the schema for one of the supported output formats using `repres
 (require '[semperos.otto :as o])
 
 (o/representation-schema :json Student)
+;=> Prismatic schema for JSON-compatible Clojure map representation of domain model>
 ```
 
 For representations, the `:out` key is used as a fallback when the specified representation is not included in the domain model specification.
@@ -86,6 +87,8 @@ End users should **define methods for `coerce`** to support the custom schema ty
 
 (= student-map (deserialize Student student-json-map))
 ```
+
+By default, deserialization will look for stringified versions of the Clojure domain model keys if no `:out` or specific representation is provided. If a key should be ommitted, use `:otto/omit` as the value for a representation in the domain model spec.
 
 ## License
 
