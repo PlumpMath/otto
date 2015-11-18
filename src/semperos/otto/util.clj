@@ -9,17 +9,6 @@
          (name kw))
     kw))
 
-;; (def +json-inverse-coercions+
-;;   (merge
-;;    {s/Keyword string->keyword
-;;     s/Bool string->boolean
-;;     s/Uuid string->uuid}
-;;          {clojure.lang.Keyword string->keyword
-;;           s/Int safe-long-cast
-;;           Long safe-long-cast
-;;           Double (safe double)
-;;           Boolean string->boolean}))
-
 (defn refashion-keys
   "Returns the map with the keys in kmap renamed by passing to the functions in kmap. Modified version of `clojure.set/rename-keys`."
   [map kmap]
