@@ -6,6 +6,8 @@ Construct models for your domain as Clojure maps, with a declarative data syntax
 
 Prismatic Schema is currently used for the schema validation facilities, whereas simple Clojure functions and multimethods are used to manipulate the domain model map.
 
+[![Build Status](https://travis-ci.org/semperos/otto.svg?branch=master)](https://travis-ci.org/semperos/otto)
+
 ## Usage
 
 An example domain model representing a student:
