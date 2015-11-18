@@ -1,6 +1,6 @@
 # semperos.otto
 
-[![Otto][doc/otto.jpg]]
+![Otto](doc/otto.jpg)
 
 A Clojure library designed to ... well, that part is up to you.
 
